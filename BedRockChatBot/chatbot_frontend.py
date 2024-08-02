@@ -1,15 +1,16 @@
-# Source:Below code is provided by Streamlit and AWS 
-
-#1 import streamlit and chatbot file
+# this is the front-end built by streamlit. To run the front-end use the command
+# streamlit run chatbot_frontend.py 
+#1 import streamlit and chatbot backend python filename
 import streamlit as st 
-import  chatbot_backend as demo  #**Import your Chatbot file as demo
+import  chatbot_backend as demo
 
 #2 Set Title for Chatbot - https://docs.streamlit.io/library/api-reference/text/st.title
-st.title("Hi, This is Chatbot for Ko:sunglasses:") # **Modify this based on the title you want in want
+st.title("Hi, This is Chatbot for Ko:sunglasses:")
 
 #3 LangChain memory to the session cache - Session State - https://docs.streamlit.io/library/api-reference/session-state
+# use the session_state to manege the memory. Assign the memory function from backend to it
 if 'memory' not in st.session_state: 
-    st.session_state.memory = demo.demo_memory() #** Modify the import and memory function() attributes initialize the memory
+    st.session_state.memory = demo.demo_memory()
 
 #4 Add the UI chat history to the session cache - Session State - https://docs.streamlit.io/library/api-reference/session-state
 if 'chat_history' not in st.session_state: #see if the chat history hasn't been created yet
@@ -21,15 +22,14 @@ for message in st.session_state.chat_history:
         st.markdown(message["text"]) 
 
 #6 Enter the details for chatbot input box 
-     
-input_text = st.chat_input("Powered by Bedrock and Claude") # **display a chat input box
+input_text = st.chat_input("Powered by Bedrock and Claude")
 if input_text: 
     
     with st.chat_message("user"): 
         st.markdown(input_text) 
     
     st.session_state.chat_history.append({"role":"user", "text":input_text}) 
-
+    #pass the input and memory to the backend function
     chat_response = demo.demo_conversation(input_text=input_text, memory=st.session_state.memory) #** replace with ConversationChain Method name - call the model through the supporting library
     
     with st.chat_message("assistant"): 
