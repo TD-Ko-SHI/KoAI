@@ -6,6 +6,7 @@ Make sure you use the right AWS profile with permission and region. some models 
 
 ## BedrockChatBox
 it is built on the AWS Bedrock. 
+
 ## RAG
 This is a python application with front-end and back-end. It is using the streamlit as the front-end and langchain, FAISS, AWS Bedrock as the back-end. You can provide the URL of the pdf and start to ask questions.
 Need to install the following in advance.
@@ -13,3 +14,11 @@ pip3 install flask-sqlalchemy
 pip install -U langchain-community
 pip install faiss-gpu (for CUDA supported GPU)
 pip install faiss-cpu (depending on Python version).
+
+## Agent
+this is built by using Bedrock Agent, lambda function and knowledgebase. 
+The Agent serves as orchestrating part to process the prompt
+The Agent connects to the dynamodb in which the user-information is being stores.
+The Agent also links to the Knowledge Base to have addionional explanations. 
+The Agent consists of "OpenAPI Schema" ApllicationStatus.yaml in this project 
+  and lambda function as a whole action group.
