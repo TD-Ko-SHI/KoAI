@@ -1,0 +1,44 @@
+---
+openapi: 3.0.0
+info:
+  title: Retail Banking - New account opening status for the customer
+  version: 1.0.0
+  # Important - Prompt semantically matched to description
+  description: API for determining the status of new accounts opened based on AccountID and reason for pending status
+paths:
+  "/ApplicationStatus":
+    get:
+      summary: Get the applications data and status based on the give account ids.
+      description: Get the applications data and status based on the give account ids
+      operationId: getAllOpenAccountStatus
+      parameters:
+      - name : AccountID
+        in: path
+        description: The account ID of the customer looking for status and error code
+        required: true
+        schema:
+          type: string
+      responses:
+        '200':
+          description: Successful response containing the account status details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  AccountName:
+                    type: string
+                    description: The name of the customer corresponding to AccountID
+                  AccountID:
+                    type: string
+                    description: The account id of the customer  
+                  Comment:
+                    type: string
+                    description: The comment of the current status
+                  Status:
+                    type: string
+                    description: The status of the accountid provided
+                  ErrorCode:
+                    type: string
+                    description: The error code for internal investigation
+
