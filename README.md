@@ -5,7 +5,7 @@ To run the front-end, run the command streamlit run XXX.py, the browswer will be
 Make sure you use the right AWS profile with permission and region. some models are only available in some partitular region right now. 
 
 ## BedrockChatBox
-it is built on the AWS Bedrock. 
+It is a simple app which showcases how to leverage the AWS Bedrock and Langchain to build conversational chain, memory-enabled chatbot. 
 
 ## RAG
 This is a python application with front-end and back-end. It is using the streamlit as the front-end and langchain, FAISS, AWS Bedrock as the back-end. You can provide the URL of the pdf and start to ask questions.
@@ -22,3 +22,6 @@ The Agent connects to the dynamodb in which the user-information is being stores
 The Agent also links to the Knowledge Base to have addionional explanations. 
 The Agent consists of "OpenAPI Schema" ApllicationStatus.yaml in this project 
   and lambda function as a whole action group.
+
+##DocExtractor
+This application is using Pydantic as the parsing lib to extract contenxts from PDF etc documentations and return the structured results for 3rd party API/Applications. Pydantic provides the control and flexibility in content-extracting process.
