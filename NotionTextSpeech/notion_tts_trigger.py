@@ -12,7 +12,7 @@ def lambda_handler(event, context):
         results = notion.databases.query(
             database_id=DATABASE_ID,
             filter={
-                "property": "Status",
+                "property": "AudioGenerating",
                 "status": {"does_not_equal": "Completed"}
             }
         )
@@ -23,13 +23,14 @@ def lambda_handler(event, context):
             try:
                 page_id = page['id']
                 print(page_id)
-                french_text = page['properties']['French']['rich_text'][0]['text']['content']
+                # french_text = page['properties']['French']['rich_text'][0]['text']['content']
+                french_text = page['properties']['French']['title'][0]['text']['content']
                 print(page['properties'])
                 # Update status to "Processing"
                 notion.pages.update(
                     page_id=page_id,
                     properties={
-                        'Status': {'status': {'name': 'Processing'}}
+                        'AudioGenerating': {'status': {'name': 'Processing'}}
                     }
                 )
                 
@@ -41,7 +42,7 @@ def lambda_handler(event, context):
                 notion.pages.update(
                     page_id=page_id,
                     properties={
-                        'Status': {'status': {'name': 'Error'}}
+                        'AudioGenerating': {'status': {'name': 'Error'}}
                     }
                 )
         

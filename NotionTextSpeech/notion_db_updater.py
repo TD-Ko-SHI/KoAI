@@ -12,14 +12,14 @@ def update_notion_entry(event):
         english_text = event['english_text']
         sample_sentence = event['sample_sentence']
         audio_url = event['audio_url']
-        the_status = event['status']
-        print(f"page_info: {page_id}, {french_text}, {english_text}, {sample_sentence}, {audio_url}, {the_status}")
+        audio_status = event['audio_status']
+        print(f"page_info: {page_id}, {french_text}, {english_text}, {sample_sentence}, {audio_url}, {audio_status}")
 
         properties = {
-            'French': {'rich_text': [{'text': {'content': french_text}}]},
+            # 'French': {'rich_text': [{'text': {'content': french_text}}]},
             'English': {'rich_text': [{'text': {'content': english_text}}]},
             'Sample Sentence': {'rich_text': [{'text': {'content': sample_sentence}}]},
-            'Status': {'status': {'name': the_status}},
+            'AudioGenerating': {'status': {'name': audio_status}},
         }
 
         if audio_url:

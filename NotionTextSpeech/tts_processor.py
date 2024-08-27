@@ -116,23 +116,34 @@ def translate_to_english(french_text):
 
 def process_french_text(event):
     try:
-        page_id = event['page_id']
-        french_text = event['french_text']
+        page_id = event.get('page_id')
+        french_text = event.get('french_text')
+
+        if not page_id or not french_text:
+            raise ValueError("Missing required fields: page_id or french_text")
 
         # First, check if the item already exists in DynamoDB
-        existing_item = table.get_item(Key={'french_text': french_text}).get('Item')
+        existing_item = table.get_item(Key={'french_text': french_text}).get('Item', {})
 
         if existing_item:
             print(f"Found existing record for: {french_text}")
-            audio_url = existing_item['audio_url']
-            english_text = existing_item['english_text']
-            sample_sentence = existing_item['sample_sentence']
+            audio_url = existing_item.get('audio_url')
+            english_text = existing_item.get('english_text')
+            sample_sentence = existing_item.get('sample_sentence')
         else:
             print(f"Generating new content for: {french_text}")
             # Generate audio, sample sentence, and translation
             sample_sentence = generate_sample_sentence(french_text)
             english_text = translate_to_english(french_text)
             audio_url = generate_audio(sample_sentence)
+
+        # Validate generated content
+        if not english_text:
+            raise ValueError("Failed to generate English translation")
+        if not sample_sentence:
+            raise ValueError("Failed to generate sample sentence")
+        if not audio_url:
+            raise ValueError("Failed to generate audio URL")
 
         # Always call get_or_create_dynamodb_item to ensure the item is in DynamoDB
         item = get_or_create_dynamodb_item(french_text, english_text, sample_sentence, audio_url)
@@ -141,12 +152,15 @@ def process_french_text(event):
         # Update Notion
         return update_notion_entry({
             'page_id': page_id,
-            'audio_url': item['audio_url'],
-            'french_text': item['french_text'],
-            'english_text': item['english_text'],
-            'sample_sentence': item['sample_sentence'],
-            'status': 'Completed'
+            'audio_url': item.get('audio_url'),
+            'french_text': item.get('french_text'),
+            'english_text': item.get('english_text'),
+            'sample_sentence': item.get('sample_sentence'),
+            'audio_status': 'Completed'
         })
+    except ValueError as ve:
+        print(f"Validation error in process_french_text: {str(ve)}")
+        return update_notion_entry({'page_id': page_id, 'audio_status': 'Error'})
     except Exception as e:
         print(f"Error in process_french_text: {str(e)}")
-        return update_notion_entry({'page_id': page_id, 'status': 'Error'})
+        return update_notion_entry({'page_id': page_id, 'audio_status': 'Error'})
