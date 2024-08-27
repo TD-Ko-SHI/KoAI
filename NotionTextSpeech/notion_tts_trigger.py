@@ -2,12 +2,10 @@ import json
 import os
 from dotenv import load_dotenv
 from notion_client import Client
-from tts_processor import generate_audio
-from notion_db_updater import update_notion_entry
+from tts_processor2 import process_french_text
 
 notion = Client(auth=os.environ['NOTION_API_KEY'])
 DATABASE_ID = os.environ['NOTION_DATABASE_ID']
-
 
 def lambda_handler(event, context):
     try:
@@ -36,15 +34,15 @@ def lambda_handler(event, context):
                     }
                 )
                 
-                # Directly call the generate_audio function
-                generate_audio({'page_id': page_id, 'french_text': french_text})
+                # Directly call the process_french_text function
+                process_french_text({'page_id': page_id, 'french_text': french_text})
                 processed_count += 1
             except Exception as e:
                 print(f"Error processing page {page_id}: {str(e)}")
                 notion.pages.update(
                     page_id=page_id,
                     properties={
-                        'Status': {'select': {'name': 'Error'}}
+                        'Status': {'status': {'name': 'Error'}}
                     }
                 )
         
