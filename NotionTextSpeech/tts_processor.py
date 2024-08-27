@@ -19,39 +19,32 @@ polly = session.client('polly')
 dynamodb = session.resource('dynamodb')
 table = dynamodb.Table(DYNAMODB_TABLE_NAME)
 
-def check_dynamodb(french_text):
-    try:
-        response = table.get_item(Key={'french_text': french_text})
-        return response.get('Item')
-    except ClientError as e:
-        print(f"Error checking DynamoDB: {str(e)}")
-        return None
+# Create a Bedrock client
+bedrock = session.client('bedrock-runtime')
 
-def insert_dynamodb(french_text, english_text, sample_sentence, audio_url):
+
+def get_or_create_dynamodb_item(french_text, english_text, sample_sentence, audio_url):
     try:
-        table.put_item(
-            Item={
-                'french_text': french_text,
-                'english_text': english_text,
-                'sample_sentence': sample_sentence,
-                'audio_url': audio_url
+        # Attempt to add a new item. If it already exists, update it.
+        response = table.update_item(
+            Key={'french_text': french_text},
+            UpdateExpression='SET english_text = :e, sample_sentence = :s, audio_url = :a',
+            ExpressionAttributeValues={
+                ':e': english_text,
+                ':s': sample_sentence,
+                ':a': audio_url
             },
-            ConditionExpression='attribute_not_exists(french_text)'
+            ReturnValues='ALL_NEW'
         )
-        print(f"Successfully inserted into DynamoDB: {french_text}")
-        return True
+        return response['Attributes']
     except ClientError as e:
-        if e.response['Error']['Code'] == 'ConditionalCheckFailedException':
-            print(f"Redundant french_text detected: {french_text}")
-            return False
-        else:
-            print(f"Error inserting into DynamoDB: {str(e)}")
-            raise
+        print(f"Error in get_or_create_dynamodb_item: {str(e)}")
+        raise
 
-def generate_audio(french_text):
+def generate_audio(sample_sentence):
     try:
-        response = polly.synthesize_speech(Text=french_text, OutputFormat='mp3', VoiceId='Mathieu')
-        key = f"audio_{hash(french_text)}.mp3"
+        response = polly.synthesize_speech(Text=sample_sentence, OutputFormat='mp3', VoiceId='Mathieu')
+        key = f"audio_{hash(sample_sentence)}.mp3"
         s3.put_object(Bucket=BUCKET_NAME, Key=key, Body=response['AudioStream'].read())
         audio_url = f"https://{BUCKET_NAME}.s3.amazonaws.com/{key}"
         return audio_url
@@ -59,46 +52,101 @@ def generate_audio(french_text):
         print(f"Error generating audio: {str(e)}")
         raise
 
+# Function to generate sample sentences using AWS Bedrock
+def generate_sample_sentence(french_text):
+    try:
+        prompt = f"""Human: You are a French language expert. Generate a sample sentence in French using the following word or phrase: "{french_text}". 
+        The sentence should be natural, contextually appropriate, and demonstrate the usage of the given word or phrase. 
+        Provide only the French sentence without any additional explanation.
+
+        Assistant: Here's a sample sentence in French using "{french_text}":
+
+        Human: Thank you. Now, please provide only the generated French sentence, without any additional text.
+
+        Assistant: """
+
+        body = json.dumps({
+            "prompt": prompt,
+            "max_tokens_to_sample": 300,
+            "temperature": 0.7,
+            "top_p": 0.95,
+        })
+
+        response = bedrock.invoke_model(
+            modelId="anthropic.claude-v2:1",
+            body=body
+        )
+
+        response_body = json.loads(response['body'].read())
+        sample_sentence = response_body['completion'].strip()
+        return sample_sentence
+    except Exception as e:
+        print(f"Error generating sample sentence: {str(e)}")
+        return None
+
+def translate_to_english(french_text):
+    try:
+        prompt = f"""Human: Translate the following French text to English: "{french_text}".
+        Provide only the English translation without any additional explanation.
+
+        Assistant: Here's the English translation:
+
+        Human: Thank you. Now, please provide only the English translation, without any additional text.
+
+        Assistant: """
+
+        body = json.dumps({
+            "prompt": prompt,
+            "max_tokens_to_sample": 300,
+            "temperature": 0.3,
+            "top_p": 0.95,
+        })
+
+        response = bedrock.invoke_model(
+            modelId="anthropic.claude-v2:1",
+            body=body
+        )
+
+        response_body = json.loads(response['body'].read())
+        english_translation = response_body['completion'].strip()
+        return english_translation
+    except Exception as e:
+        print(f"Error translating to English: {str(e)}")
+        return None
+
 def process_french_text(event):
     try:
         page_id = event['page_id']
         french_text = event['french_text']
-        english_text = "English Dumy"
-        sample_sentence = "dumydumydumy"
-        print(f"Processing page {page_id}: {french_text}, {sample_sentence}")
 
-        # Check DynamoDB for existing record
-        existing_record = check_dynamodb(french_text)
+        # First, check if the item already exists in DynamoDB
+        existing_item = table.get_item(Key={'french_text': french_text}).get('Item')
 
-        if existing_record:
+        if existing_item:
             print(f"Found existing record for: {french_text}")
-            audio_url = existing_record['audio_url']
-            english_text = existing_record['english_text']
-            sample_sentence = existing_record['sample_sentence']
+            audio_url = existing_item['audio_url']
+            english_text = existing_item['english_text']
+            sample_sentence = existing_item['sample_sentence']
         else:
-            print(f"Generating new audio for: {french_text}")
-            audio_url = generate_audio(french_text)
-            insert_success = insert_dynamodb(french_text, english_text, sample_sentence, audio_url)
-            if not insert_success:
-                # Handle the case where the item wasn't inserted due to redundancy
-                existing_record = check_dynamodb(french_text)
-                if existing_record:
-                    audio_url = existing_record['audio_url']
-                    english_text = existing_record['english_text']
-                    sample_sentence = existing_record['sample_sentence']
-                else:
-                    raise Exception("Failed to insert or retrieve redundant french_text")
+            print(f"Generating new content for: {french_text}")
+            # Generate audio, sample sentence, and translation
+            sample_sentence = generate_sample_sentence(french_text)
+            english_text = translate_to_english(french_text)
+            audio_url = generate_audio(sample_sentence)
+
+        # Always call get_or_create_dynamodb_item to ensure the item is in DynamoDB
+        item = get_or_create_dynamodb_item(french_text, english_text, sample_sentence, audio_url)
+        print(f"Processed: {french_text}, {english_text}, {sample_sentence}, {audio_url}")
 
         # Update Notion
         return update_notion_entry({
             'page_id': page_id,
-            'audio_url': audio_url,
-            'french_text': french_text,
-            'english_text': english_text,
-            'sample_sentence': sample_sentence,
+            'audio_url': item['audio_url'],
+            'french_text': item['french_text'],
+            'english_text': item['english_text'],
+            'sample_sentence': item['sample_sentence'],
             'status': 'Completed'
         })
-
     except Exception as e:
         print(f"Error in process_french_text: {str(e)}")
-        return update_notion_entry({'page_id': page_id, 'status': f'Error'})
+        return update_notion_entry({'page_id': page_id, 'status': 'Error'})

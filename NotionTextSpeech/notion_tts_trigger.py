@@ -13,10 +13,9 @@ def lambda_handler(event, context):
             database_id=DATABASE_ID,
             filter={
                 "property": "Status",
-                "status": {"equals": "Not Started"}
+                "status": {"does_not_equal": "Completed"}
             }
         )
-        
         print(results)
         
         processed_count = 0
