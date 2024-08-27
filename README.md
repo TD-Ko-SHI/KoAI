@@ -23,5 +23,8 @@ The Agent also links to the Knowledge Base to have addionional explanations.
 The Agent consists of "OpenAPI Schema" ApllicationStatus.yaml in this project 
   and lambda function as a whole action group.
 
-##DocExtractor
+## DocExtractor
 This application is using Pydantic as the parsing lib to extract contenxts from PDF etc documentations and return the structured results for 3rd party API/Applications. Pydantic provides the control and flexibility in content-extracting process.
+
+## NotionTextSpeech
+This is a application to learn French words in Notion. we leverage the AWS BedRock as the Text Generation Tooling and Polly to convert the generated sample sentence into mp3 audio. We store the audio in S3 and insert the record into DynamoDB. 
