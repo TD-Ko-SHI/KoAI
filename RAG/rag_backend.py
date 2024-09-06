@@ -1,20 +1,26 @@
 # this is the back-end of the app.
 import os
-from langchain_community.document_loaders import PyPDFLoader
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-#from langchain_community.embeddings import BedrockEmbeddings
-from langchain_aws import BedrockEmbeddings
-from langchain_community.vectorstores import FAISS
-from langchain.indexes import VectorstoreIndexCreator
-from langchain_community.llms import Bedrock
+from langchain_community.document_loaders import PyPDFLoader  # Import for loading PDF documents
+from langchain.text_splitter import RecursiveCharacterTextSplitter  # Import for splitting text
+from langchain_aws import BedrockEmbeddings  # Import for generating embeddings
+from langchain_community.vectorstores import FAISS  # Import for vector storage
+from langchain.indexes import VectorstoreIndexCreator  # Import for creating indexes
+from langchain_community.llms import Bedrock  # Import for language models
 
 # Global variable to hold the database index
 db_index = None
 
-# load the data, split it, embed, store into vector db and create the index
+# Function to load a PDF, process it, and create a searchable index
 def load_pdf_and_create_index(pdf_url):
     """
     Load a PDF from the provided URL, process it, and create an index.
+    
+    This function performs the following steps:
+    1. Loads the PDF using PyPDFLoader
+    2. Splits the text into chunks using RecursiveCharacterTextSplitter
+    3. Creates embeddings using BedrockEmbeddings
+    4. Stores the embeddings in a FAISS vector database
+    5. Creates an index for efficient searching
 
     Parameters:
     pdf_url (str): The URL of the PDF to load.
@@ -22,22 +28,36 @@ def load_pdf_and_create_index(pdf_url):
     Returns:
     db_index: The vector database index created from the PDF.
     """
-    # Load the data with PyPDFLoader using the provided URL
+    # Load the PDF data using PyPDFLoader
     data_load = PyPDFLoader(pdf_url)
-    #Split the Text based on Character, Tokens etc. - Recursively split by character - ["\n\n", "\n", " ", ""]
-    data_split=RecursiveCharacterTextSplitter(separators=["\n\n", "\n", " ", ""], chunk_size=100,chunk_overlap=10)
-    #Create a client for the embeddings
-    data_embeddings=BedrockEmbeddings(
-    credentials_profile_name= 'ko-engineer',
-    region_name='us-east-1',
-    model_id='amazon.titan-embed-text-v1')
-    #Use facebook FAISS vector DB to store Embeddings and Index for Search - VectorstoreIndexCreator
-    data_index=VectorstoreIndexCreator(
+
+    # Split the text into chunks using RecursiveCharacterTextSplitter
+    # This helps in creating manageable pieces of text for processing
+    data_split = RecursiveCharacterTextSplitter(
+        separators=["\n\n", "\n", " ", ""],
+        chunk_size=100,
+        chunk_overlap=10
+    )
+
+    # Create a client for generating embeddings using BedrockEmbeddings
+    # This will convert text chunks into numerical vectors
+    data_embeddings = BedrockEmbeddings(
+        credentials_profile_name='ko-engineer',
+        region_name='us-east-1',
+        model_id='amazon.titan-embed-text-v1'
+    )
+
+    # Create a VectorstoreIndexCreator to store embeddings and create an index
+    # This uses the FAISS library for efficient similarity search
+    data_index = VectorstoreIndexCreator(
         text_splitter=data_split,
         embedding=data_embeddings,
-        vectorstore_cls=FAISS)
-    #Create index for HR Policy Document
-    db_index=data_index.from_loaders([data_load])
+        vectorstore_cls=FAISS
+    )
+
+    # Create the final index from the loaded PDF data
+    db_index = data_index.from_loaders([data_load])
+
     return db_index
 
 #Write a function to connect to Bedrock Foundation Model - Claude Foundation Model
