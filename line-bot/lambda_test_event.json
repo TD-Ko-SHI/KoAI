@@ -1,0 +1,7 @@
+{
+  "headers": {
+    "x-line-signature": "ABlJvQgj0kTZyFtDdu19M+1WXtOrccEE5qtTcEyOD0M=",
+    "x-line-request-id": "12345678-1234-1234-1234-123456789012"
+  },
+  "body": "{\"destination\": \"Ue197534f68e9...\", \"events\": [{\"type\": \"message\", \"message\": {\"type\": \"text\", \"id\": \"1234567890\", \"text\": \"Hello, bot!\"}, \"timestamp\": 1462629479859, \"source\": {\"type\": \"user\", \"userId\": \"U4af4980629...\"}, \"replyToken\": \"nHuyWiB7yP5Zw52FIkcQobQuGDXCTA\", \"mode\": \"active\"}]}"
+}
