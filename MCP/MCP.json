@@ -1,0 +1,22 @@
+{
+  "inputs": [
+    {
+        "type": "promptString",
+        "id": "td_api_key",
+        "description": "Treasure Data API Key",
+        "password": true
+    }
+  ],
+  "servers": {
+      "td-client": {
+        "type": "http",
+        // "url": "https://td-client-mcp-development.internal.treasuredata.com/mcp",
+        "url": "https://td-client-mcp.internal.treasuredata.com/mcp",
+        "headers": {
+          "Content-Type": "application/json",
+          "Authorization": "Bearer ${input:td_api_key}"
+        }
+      }
+  }
+}
+
